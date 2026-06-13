@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADX — QR CODE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06080f;--surface:#0c0f1d;--card:#111527;--border:#1e2440;--border2:#2a3158;
+  --blue1:#1a2560;--blue2:#2d3f8f;--blue3:#3d56c4;--blue4:#5b7af0;--blue5:#8aa4ff;
+  --accent:#4f6ef7;--glow:rgba(79,110,247,0.15);--text:#e8ecff;
+  --muted:#6b7ab8;--muted2:#4a5490;--green:#22c55e;--red:#ef4444;--radius:14px;
+  --font:'Space Grotesk',system-ui,sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+.screen{display:none}
+.screen.active{display:block}
+#screen-login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+
+/* LOGIN */
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px 24px;width:100%;max-width:380px}
+.brand{text-align:center;margin-bottom:28px}
+.brand-name{font-size:32px;font-weight:900;letter-spacing:-1px}
+.brand-sub{font-size:9px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);text-transform:uppercase;margin-top:3px}
+.login-tabs{display:flex;background:var(--surface);border-radius:10px;padding:4px;margin-bottom:20px;gap:4px}
+.ltab{flex:1;padding:9px 0;text-align:center;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;color:var(--muted);transition:all .2s}
+.ltab.active{background:var(--blue2);color:#fff}
+.lform{display:none}.lform.active{display:block}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;font-weight:600}
+.field input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:13px 14px;color:var(--text);font-size:15px;font-family:var(--font);outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--blue3)}
+.pwd-wrap{position:relative}
+.pwd-wrap input{padding-right:48px!important}
+.eye-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0}
+.charte-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
+.charte-row input[type=checkbox]{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;cursor:pointer}
+.charte-row span{font-size:12px;color:var(--muted);line-height:1.6}
+.charte-row a{color:var(--blue4);text-decoration:none;font-weight:600}
+.btn-p{width:100%;background:linear-gradient(135deg,var(--blue3),var(--accent));color:#fff;border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed}
+.alert{border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
+.alert.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.alert.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)}
+
+/* NAV */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:99}
+.nav-brand{display:flex;flex-direction:column}
+.nav-name{font-weight:900;font-size:18px;letter-spacing:-0.5px;display:flex;align-items:center;gap:8px}
+.nav-sub{font-size:8px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.25);text-transform:uppercase}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px}
+.badge.admin{background:var(--accent);color:#fff}
+.badge.client{background:var(--blue1);border:1px solid var(--blue2);color:var(--blue4)}
+.btn-nav{background:none;border:1px solid var(--border2);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--muted);cursor:pointer;font-family:var(--font)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:12px 14px;font-size:12px;font-weight:600;color:var(--muted2);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;border:none;background:none;font-family:var(--font)}
+.tab.active{color:var(--blue4);border-bottom:2px solid var(--blue4)}
+
+/* PAGES */
+.page{display:none;padding:20px;animation:fi .2s ease}
+.page.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* CARDS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--glow),transparent);pointer-events:none}
+.slabel{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;font-weight:600}
+.svalue{font-size:26px;font-weight:800;letter-spacing:-1px}
+.ssub{font-size:11px;color:var(--green);margin-top:4px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.stitle{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:12px}
+
+/* CHART */
+.chart-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.chart-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:80px}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{width:100%;background:linear-gradient(180deg,var(--blue4),var(--blue2));border-radius:4px 4px 0 0}
+.bar-label{font-size:8px;color:var(--muted2);text-align:center}
+.top-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.top-item:last-child{border-bottom:none}
+.top-rank{font-size:11px;color:var(--muted2);width:18px;font-weight:700}
+.top-name{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-bar{flex:1;height:3px;background:var(--border);border-radius:2px;margin:0 6px}
+.top-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue3),var(--blue4));border-radius:2px}
+.top-scans{font-size:12px;color:var(--blue4);font-weight:700;min-width:35px;text-align:right}
+
+/* QR */
+.toolbar{display:flex;gap:8px;margin-bottom:14px}
+.btn-tool{flex:1;background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:10px 6px;font-size:12px;font-weight:600;color:var(--blue5);cursor:pointer;font-family:var(--font)}
+.btn-tool.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.create-panel{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;margin-bottom:14px;display:none}
+.create-panel.open{display:block}
+.create-panel h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.qr-list{display:flex;flex-direction:column;gap:10px}
+.qr-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:12px}
+.qr-thumb{width:52px;height:52px;background:#fff;border-radius:8px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:3px}
+.qr-thumb canvas,.qr-thumb img{width:100%!important;height:100%!important}
+.qr-info{flex:1;min-width:0}
+.qr-name{font-size:13px;font-weight:800;color:var(--blue4);margin-bottom:3px}
+.qr-sub{font-size:11px;color:var(--muted);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qr-dest{font-size:11px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;display:inline-block;margin-bottom:3px}
+.status.active{background:rgba(34,197,94,.12);color:var(--green)}
+.status.pending{background:rgba(79,110,247,.12);color:var(--blue4)}
+.status.free{background:rgba(100,100,100,.1);color:var(--muted)}
+.qr-scans-mini{text-align:center;flex-shrink:0}
+.qr-scans-num{font-size:18px;font-weight:800;color:var(--blue4)}
+.qr-scans-lbl{font-size:9px;color:var(--muted2);text-transform:uppercase}
+.qr-btns{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.btn-sm{width:34px;height:34px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.btn-sm:hover{color:var(--text);border-color:var(--blue3)}
+
+/* CLIENTS */
+.client-list{display:flex;flex-direction:column;gap:10px}
+.client-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.client-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.client-name{font-size:13px;font-weight:700}
+.client-date{font-size:10px;color:var(--muted)}
+.code-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.code-tag{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--blue4)}
+
+/* MESSAGES */
+.broadcast-btn{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px;font-size:13px;font-weight:600;color:var(--blue4);cursor:pointer;font-family:var(--font);margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px}
+.broadcast-panel{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;margin-bottom:14px;display:none}
+.broadcast-panel.open{display:block}
+.conv-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.conv-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:13px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:border-color .15s}
+.conv-item:hover,.conv-item.active{border-color:var(--blue3)}
+.conv-av{width:36px;height:36px;background:linear-gradient(135deg,var(--blue2),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+.conv-info{flex:1;min-width:0}
+.conv-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.conv-preview{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unread{width:8px;height:8px;background:var(--blue4);border-radius:50%;flex-shrink:0}
+.chat-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.chat-header{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.chat-av{width:32px;height:32px;background:linear-gradient(135deg,var(--blue2),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.chat-hname{font-size:13px;font-weight:700}
+.chat-hsub{font-size:10px;color:var(--muted)}
+.chat-msgs{padding:14px;display:flex;flex-direction:column;gap:10px;max-height:260px;overflow-y:auto}
+.msg{max-width:82%}
+.msg.them{align-self:flex-start}
+.msg.me{align-self:flex-end}
+.msg-bubble{padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.4;word-break:break-word}
+.msg.them .msg-bubble{background:var(--surface);border:1px solid var(--border2);border-radius:4px 12px 12px 12px}
+.msg.me .msg-bubble{background:linear-gradient(135deg,var(--blue2),var(--blue3));color:#fff;border-radius:12px 4px 12px 12px}
+.msg-time{font-size:9px;color:var(--muted2);margin-top:3px;padding:0 4px}
+.chat-row{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
+.chat-row input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px 13px;color:var(--text);font-size:13px;font-family:var(--font);outline:none}
+.chat-row input:focus{border-color:var(--blue3)}
+.btn-send{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:16px;cursor:pointer}
+
+/* SETTINGS */
+.settings-list{display:flex;flex-direction:column;gap:12px}
+.setting-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.setting-title{font-size:14px;font-weight:700;margin-bottom:14px}
+.btn-setting{width:100%;background:linear-gradient(135deg,var(--blue3),var(--accent));color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:8px}
+.btn-deconnect{width:100%;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:13px;font-size:14px;font-weight:700;color:var(--red);cursor:pointer;font-family:var(--font)}
+
+/* USER QR */
+.user-hero{background:linear-gradient(135deg,var(--blue1),var(--card));border:1px solid var(--border2);border-radius:18px;padding:22px;text-align:center;margin-bottom:14px;position:relative;overflow:hidden}
+.user-qr-wrap{width:160px;height:160px;background:#fff;border-radius:12px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(79,110,247,.25)}
+.user-qr-wrap canvas,.user-qr-wrap img{display:block!important}
+.user-qr-title{font-size:15px;font-weight:800;margin-bottom:4px}
+.user-qr-url{font-size:11px;color:var(--blue4);margin-bottom:16px;word-break:break-all}
+.edit-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;text-align:left;font-weight:600}
+.edit-row{display:flex;gap:8px}
+.edit-row input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:11px 13px;color:var(--text);font-size:13px;font-family:var(--font);outline:none}
+.btn-maj{background:linear-gradient(135deg,var(--blue3),var(--accent));color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.btn-maj.ok{background:var(--green)}
+.user-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn-action{padding:12px 0;border-radius:10px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.multi-list{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.multi-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px;display:flex;align-items:center;gap:12px}
+.mini-thumb{width:44px;height:44px;background:#fff;border-radius:6px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:2px}
+.mini-thumb canvas,.mini-thumb img{width:100%!important;height:100%!important}
+.multi-info{flex:1;min-width:0}
+.multi-code{font-size:12px;font-weight:800;color:var(--blue4);margin-bottom:2px}
+.multi-dest{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-edit-sm{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--blue5);cursor:pointer;font-family:var(--font);flex-shrink:0}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:24px 20px 44px}
+.sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 20px}
+.sheet h2{font-size:16px;font-weight:800;margin-bottom:16px}
+.sheet-qr-wrap{background:#fff;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.sheet-code{font-size:15px;font-weight:800;color:var(--blue4);margin-bottom:4px}
+.sheet-dest{font-size:13px;color:var(--muted);word-break:break-all;margin-bottom:14px}
+.sheet-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn-outline{padding:12px 0;border-radius:10px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.btn-update{background:linear-gradient(135deg,var(--blue3),var(--accent));color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.btn-update.ok{background:var(--green)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:#1e2440;border:1px solid var(--border2);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.empty{text-align:center;padding:50px 20px;color:var(--muted2)}
+.empty-icon{font-size:36px;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="screen-login" class="screen active" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px">
+  <div class="login-box">
+    <div class="brand"><div class="brand-name">ADX</div><div class="brand-sub">QR CODE</div></div>
+    <div class="login-tabs">
+      <div class="ltab active" onclick="switchTab('login',this)">Se connecter</div>
+      <div class="ltab" onclick="switchTab('register',this)">Activer mon QR</div>
+    </div>
+
+    <div class="lform active" id="form-login">
+      <div class="alert err" id="l-err"></div>
+      <div class="field"><label>Email</label><input type="email" id="l-email" placeholder="ton@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="field"><label>Mot de passe</label>
+        <div class="pwd-wrap"><input type="password" id="l-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"><button class="eye-btn" onclick="togglePwd('l-pwd',this)" type="button">👁</button></div>
+      </div>
+      <button class="btn-p" id="btn-login" onclick="doLogin()">Connexion →</button>
+    </div>
+
+    <div class="lform" id="form-register">
+      <div class="alert err" id="r-err"></div>
+      <div class="alert ok" id="r-ok"></div>
+      <div class="field"><label>Code QR (dans la boîte)</label><input type="text" id="r-code" placeholder="ex: A5XQ9" style="text-transform:uppercase;letter-spacing:2px;font-weight:700" maxlength="5"></div>
+      <div class="field"><label>Email</label><input type="email" id="r-email" placeholder="ton@email.com"></div>
+      <div class="field"><label>Mot de passe</label>
+        <div class="pwd-wrap"><input type="password" id="r-pwd" placeholder="Minimum 6 caractères"><button class="eye-btn" onclick="togglePwd('r-pwd',this)" type="button">👁</button></div>
+      </div>
+      <div class="field"><label>Pseudo</label><input type="text" id="r-pseudo" placeholder="ex: Jean"></div>
+      <div class="charte-row">
+        <input type="checkbox" id="r-charte">
+        <span>J'accepte les <a href="/charte" target="_blank" rel="noopener">conditions d'utilisation</a> et la <a href="/charte" target="_blank" rel="noopener">charte ADX</a></span>
+      </div>
+      <button class="btn-p" id="btn-register" onclick="doRegister()">Activer mon QR code ⚡</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN ══ -->
+<div id="screen-admin" class="screen">
+  <div class="nav">
+    <div class="nav-brand">
+      <div class="nav-name">ADX <span class="badge admin">ADMIN</span></div>
+      <div class="nav-sub">QR CODE</div>
+    </div>
+    <button class="btn-nav" onclick="logout()">↩</button>
+  </div>
+  <div class="tabs" id="admin-tabs">
+    <button class="tab active" onclick="showAP('stats',this)">📊 Stats</button>
+    <button class="tab" onclick="showAP('myqr',this)">⚡ Mon QR</button>
+    <button class="tab" onclick="showAP('qrcodes',this)">📷 QR Clients</button>
+    <button class="tab" onclick="showAP('clients',this)">👥 Clients</button>
+    <button class="tab" onclick="showAP('messages',this)">💬 Messages</button>
+    <button class="tab" onclick="showAP('settings',this)">⚙️ Paramètres</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="page active" id="admin-stats">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="slabel">QR clients actifs</div><div class="svalue" id="as-active">—</div></div>
+      <div class="stat-card"><div class="slabel">Scans totaux</div><div class="svalue" id="as-scans">—</div></div>
+      <div class="stat-card"><div class="slabel">Clients</div><div class="svalue" id="as-clients">—</div></div>
+      <div class="stat-card"><div class="slabel">Codes libres</div><div class="svalue" id="as-free">—</div></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Top QR par scans</div>
+      <div class="bars" id="a-chart"><div style="color:var(--muted);font-size:12px;padding:20px">Chargement…</div></div>
+    </div>
+    <div class="card">
+      <div class="stitle">Classement</div>
+      <div id="a-top"><div class="loading">Chargement…</div></div>
+    </div>
+  </div>
+
+  <!-- Mon QR (admin) -->
+  <div class="page" id="admin-myqr">
+    <div class="stitle">Mon QR personnel</div>
+    <div id="admin-own-qr"><div class="loading">Chargement…</div></div>
+  </div>
+
+  <!-- QR Clients -->
+  <div class="page" id="admin-qrcodes">
+    <div class="toolbar">
+      <button class="btn-tool pri" onclick="toggleCreate()">+ Créer QR</button>
+      <button class="btn-tool" onclick="generateBulk()">📦 Générer 10</button>
+    </div>
+    <div class="create-panel" id="create-panel">
+      <h3>Nouveau QR Code client</h3>
+      <div class="field"><label>URL de départ (optionnel)</label><input type="url" id="new-url" placeholder="https://qrlink-cdnv.vercel.app"></div>
+      <button class="btn-p" id="btn-create" onclick="createQR()" style="margin-top:8px">Créer ⚡</button>
+    </div>
+    <div class="stitle" id="qr-count">—</div>
+    <div class="qr-list" id="a-qr-list"><div class="loading">Chargement…</div></div>
+  </div>
+
+  <!-- Clients -->
+  <div class="page" id="admin-clients">
+    <div class="stitle" id="a-clients-count">—</div>
+    <div class="client-list" id="a-client-list"><div class="loading">Chargement…</div></div>
+  </div>
+
+  <!-- Messages -->
+  <div class="page" id="admin-messages">
+    <button class="broadcast-btn" onclick="toggleBroadcast()">📢 Message à tous</button>
+    <div class="broadcast-panel" id="broadcast-panel">
+      <div class="field"><label>Message groupé</label><input type="text" id="broadcast-msg" placeholder="Votre message à tous les clients…"></div>
+      <button class="btn-p" onclick="sendBroadcast()">Envoyer à tous 📢</button>
+    </div>
+    <div class="stitle">Conversations individuelles</div>
+    <div class="conv-list" id="a-conv-list"><div class="loading">Chargement…</div></div>
+    <div class="chat-box" id="a-chat" style="display:none">
+      <div class="chat-header">
+        <div class="chat-av" id="a-chat-av">?</div>
+        <div><div class="chat-hname" id="a-chat-name">—</div><div class="chat-hsub" id="a-chat-sub">—</div></div>
+      </div>
+      <div class="chat-msgs" id="a-chat-msgs"></div>
+      <div class="chat-row">
+        <input id="a-chat-input" placeholder="Répondre…" onkeydown="if(event.key==='Enter')adminSend()">
+        <button class="btn-send" onclick="adminSend()">→</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paramètres Admin -->
+  <div class="page" id="admin-settings">
+    <div class="settings-list">
+      <!-- Changer email -->
+      <div class="setting-item">
+        <div class="setting-title">Changer l'adresse email</div>
+        <div class="field"><label>Email actuel</label><input type="email" id="set-email-current" placeholder="Email actuel"></div>
+        <div class="field"><label>Nouvel email</label><input type="email" id="set-email-new" placeholder="Nouvel email"></div>
+        <div class="field"><label>Confirmer le nouvel email</label><input type="email" id="set-email-confirm" placeholder="Confirmer le nouvel email"></div>
+        <button class="btn-setting" onclick="updateEmail('admin')">Mettre à jour l'email</button>
+      </div>
+      <!-- Changer mot de passe -->
+      <div class="setting-item">
+        <div class="setting-title">Changer le mot de passe</div>
+        <div class="field"><label>Adresse email</label><input type="email" id="set-pwd-email" placeholder="Ton email"></div>
+        <div class="field"><label>Mot de passe actuel</label>
+          <div class="pwd-wrap"><input type="password" id="set-pwd-current" placeholder="Mot de passe actuel"><button class="eye-btn" onclick="togglePwd('set-pwd-current',this)" type="button">👁</button></div>
+        </div>
+        <div class="field"><label>Nouveau mot de passe</label>
+          <div class="pwd-wrap"><input type="password" id="set-pwd-new" placeholder="Nouveau mot de passe"><button class="eye-btn" onclick="togglePwd('set-pwd-new',this)" type="button">👁</button></div>
+        </div>
+        <div class="field"><label>Confirmer le nouveau mot de passe</label>
+          <div class="pwd-wrap"><input type="password" id="set-pwd-confirm" placeholder="Confirmer le mot de passe"><button class="eye-btn" onclick="togglePwd('set-pwd-confirm',this)" type="button">👁</button></div>
+        </div>
+        <button class="btn-setting" onclick="updatePassword('admin')">Mettre à jour le mot de passe</button>
+      </div>
+      <!-- Pseudo -->
+      <div class="setting-item">
+        <div class="setting-title">Changer le pseudo</div>
+        <div class="field"><label>Nouveau pseudo</label><input type="text" id="set-pseudo" placeholder="Nouveau pseudo"></div>
+        <button class="btn-setting" onclick="updatePseudo('admin')">Mettre à jour</button>
+      </div>
+      <button class="btn-deconnect" onclick="logout()">↩ Déconnexion</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CLIENT ══ -->
+<div id="screen-client" class="screen">
+  <div class="nav">
+    <div class="nav-brand">
+      <div class="nav-name">ADX <span class="badge client" id="c-badge">CLIENT</span></div>
+      <div class="nav-sub">QR CODE</div>
+    </div>
+    <button class="btn-nav" onclick="logout()">↩</button>
+  </div>
+  <div class="tabs" id="client-tabs">
+    <button class="tab active" onclick="showCP('myqr',this)">🔗 Mes QR</button>
+    <button class="tab" onclick="showCP('stats',this)">📊 Stats</button>
+    <button class="tab" onclick="showCP('messages',this)">💬 Support</button>
+    <button class="tab" onclick="showCP('settings',this)">⚙️ Paramètres</button>
+  </div>
+
+  <div class="page active" id="client-myqr">
+    <div class="stitle">Mes QR codes</div>
+    <div class="multi-list" id="c-qr-list"><div class="loading">Chargement…</div></div>
+  </div>
+
+  <div class="page" id="client-stats">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="slabel">Mes scans</div><div class="svalue" id="cs-scans">—</div></div>
+      <div class="stat-card"><div class="slabel">Mes QR</div><div class="svalue" id="cs-count">—</div></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Scans par QR</div>
+      <div class="bars" id="c-chart"><div style="color:var(--muted);font-size:12px;padding:20px">Aucun scan</div></div>
+    </div>
+  </div>
+
+  <div class="page" id="client-messages">
+    <div class="chat-box">
+      <div class="chat-header"><div class="chat-av">A</div><div><div class="chat-hname">ADX Support</div><div class="chat-hsub" id="c-chat-status">En ligne</div></div></div>
+      <div class="chat-msgs" id="c-chat-msgs"><div class="loading">Chargement…</div></div>
+      <div class="chat-row">
+        <input id="c-chat-input" placeholder="Envoyer un message…" onkeydown="if(event.key==='Enter')clientSend()">
+        <button class="btn-send" onclick="clientSend()">→</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="client-settings">
+    <div class="settings-list">
+      <div class="setting-item">
+        <div class="setting-title">Changer l'adresse email</div>
+        <div class="field"><label>Email actuel</label><input type="email" id="cs-email-current" placeholder="Email actuel"></div>
+        <div class="field"><label>Nouvel email</label><input type="email" id="cs-email-new" placeholder="Nouvel email"></div>
+        <div class="field"><label>Confirmer le nouvel email</label><input type="email" id="cs-email-confirm" placeholder="Confirmer le nouvel email"></div>
+        <button class="btn-setting" onclick="updateEmail('client')">Mettre à jour l'email</button>
+      </div>
+      <div class="setting-item">
+        <div class="setting-title">Changer le mot de passe</div>
+        <div class="field"><label>Adresse email</label><input type="email" id="cs-pwd-email" placeholder="Ton email"></div>
+        <div class="field"><label>Mot de passe actuel</label>
+          <div class="pwd-wrap"><input type="password" id="cs-pwd-current" placeholder="Mot de passe actuel"><button class="eye-btn" onclick="togglePwd('cs-pwd-current',this)" type="button">👁</button></div>
+        </div>
+        <div class="field"><label>Nouveau mot de passe</label>
+          <div class="pwd-wrap"><input type="password" id="cs-pwd-new" placeholder="Nouveau mot de passe"><button class="eye-btn" onclick="togglePwd('cs-pwd-new',this)" type="button">👁</button></div>
+        </div>
+        <div class="field"><label>Confirmer le nouveau mot de passe</label>
+          <div class="pwd-wrap"><input type="password" id="cs-pwd-confirm" placeholder="Confirmer"><button class="eye-btn" onclick="togglePwd('cs-pwd-confirm',this)" type="button">👁</button></div>
+        </div>
+        <button class="btn-setting" onclick="updatePassword('client')">Mettre à jour le mot de passe</button>
+      </div>
+      <div class="setting-item">
+        <div class="setting-title">Changer le pseudo</div>
+        <div class="field"><label>Nouveau pseudo</label><input type="text" id="cs-pseudo" placeholder="Nouveau pseudo"></div>
+        <button class="btn-setting" onclick="updatePseudo('client')">Mettre à jour</button>
+      </div>
+      <button class="btn-deconnect" onclick="logout()">↩ Déconnexion</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="sh-title">QR Code</h2>
+    <div class="sheet-qr-wrap"><div id="sh-qr"></div></div>
+    <div class="sheet-code" id="sh-code"></div>
+    <div class="sheet-dest" id="sh-dest"></div>
+    <div class="edit-label">Changer la destination</div>
+    <div class="edit-row">
+      <input type="url" id="sh-url" placeholder="Nouvelle URL…">
+      <button class="btn-update" id="btn-update" onclick="saveUrl()">Maj</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-outline" onclick="copyLink()">📋 Copier lien</button>
+      <button class="btn-outline" onclick="document.getElementById('overlay').classList.remove('open')">✕ Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA='https://lxeplyrlshnfkzfeflrr.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZXBseXJsc2huZmt6ZmVmbHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMjA2MjUsImV4cCI6MjA5NjU5NjYyNX0.aEnIpLUN0PmO5twe1ruNJ5t8TuWpLrohkADDzWcO3mI';
+const BASE='https://qrlink-cdnv.vercel.app';
+const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+
+let CU=null,QRS=[],USERS=[],MSGS=[],activeConv=null,activeQR=null;
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function shortUrl(id){return BASE+'/r/'+id;}
+function toast(msg,d=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d);}
+
+async function db(path,method='GET',body){
+  const o={headers:H};
+  if(method!=='GET'){o.method=method;if(body)o.body=JSON.stringify(body);}
+  const r=await fetch(SUPA+'/rest/v1/'+path,o);
+  if(r.status===204)return null;
+  return r.json();
+}
+
+// ── ID GENERATOR (5 chars A-Z0-9) ──
+function genId(){
+  const c='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  return Array.from({length:5},()=>c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+// ── PWD TOGGLE ──
+function togglePwd(id,btn){
+  const i=document.getElementById(id);
+  if(i.type==='password'){i.type='text';btn.textContent='🙈';}
+  else{i.type='password';btn.textContent='👁';}
+}
+
+// ── SESSION ──
+function saveSession(u){localStorage.setItem('adx-u',JSON.stringify(u));}
+function loadSession(){try{return JSON.parse(localStorage.getItem('adx-u'));}catch{return null;}}
+function clearSession(){localStorage.removeItem('adx-u');}
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});
+  const el=document.getElementById('screen-'+name);
+  el.classList.add('active');
+  el.style.display=name==='login'?'flex':'block';
+}
+
+// ── LOGIN TABS ──
+function switchTab(n,el){
+  document.querySelectorAll('.ltab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.lform').forEach(f=>f.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('form-'+n).classList.add('active');
+}
+
+// ── LOGIN ──
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim();
+  const pwd=document.getElementById('l-pwd').value;
+  const err=document.getElementById('l-err');
+  err.style.display='none';
+  if(!email||!pwd){err.textContent='Remplis tous les champs';err.style.display='block';return;}
+  const btn=document.getElementById('btn-login');
+  btn.disabled=true;btn.textContent='Connexion…';
+  try{
+    const data=await db('users?email=eq.'+encodeURIComponent(email)+'&select=*');
+    if(!data||!data.length||data[0].password_hash!==pwd){
+      err.textContent='Email ou mot de passe incorrect';err.style.display='block';
+      btn.disabled=false;btn.textContent='Connexion →';return;
+    }
+    CU=data[0];saveSession(CU);
+    await loadAll();
+    if(CU.is_admin)initAdmin();else initClient();
+  }catch(e){err.textContent='Erreur de connexion. Réessaie.';err.style.display='block';}
+  btn.disabled=false;btn.textContent='Connexion →';
+}
+
+// ── REGISTER ──
+async function doRegister(){
+  const code=document.getElementById('r-code').value.trim().toUpperCase();
+  const email=document.getElementById('r-email').value.trim();
+  const pwd=document.getElementById('r-pwd').value;
+  const pseudo=document.getElementById('r-pseudo').value.trim();
+  const charte=document.getElementById('r-charte').checked;
+  const err=document.getElementById('r-err');
+  const ok=document.getElementById('r-ok');
+  err.style.display='none';ok.style.display='none';
+  if(!code||!email||!pwd||!pseudo){err.textContent='Remplis tous les champs';err.style.display='block';return;}
+  if(!charte){err.textContent='Accepte la charte pour continuer';err.style.display='block';return;}
+  if(pwd.length<6){err.textContent='Mot de passe trop court (6 min)';err.style.display='block';return;}
+  const btn=document.getElementById('btn-register');
+  btn.disabled=true;btn.textContent='Activation…';
+  try{
+    const qrData=await db('qr_codes?id=eq.'+code);
+    if(!qrData||!qrData.length){err.textContent='Code QR introuvable';err.style.display='block';btn.disabled=false;btn.textContent='Activer mon QR code ⚡';return;}
+    if(qrData[0].user_id){err.textContent='Ce code est déjà utilisé';err.style.display='block';btn.disabled=false;btn.textContent='Activer mon QR code ⚡';return;}
+    const existing=await db('users?email=eq.'+encodeURIComponent(email));
+    if(existing&&existing.length){err.textContent='Email déjà utilisé';err.style.display='block';btn.disabled=false;btn.textContent='Activer mon QR code ⚡';return;}
+    const newUser=await db('users','POST',{email,password_hash:pwd,pseudo,is_admin:false});
+    const u=Array.isArray(newUser)?newUser[0]:newUser;
+    await db('qr_codes?id=eq.'+code,'PATCH',{user_id:u.id,status:'active'});
+    ok.textContent='✅ Compte créé ! Connecte-toi maintenant.';ok.style.display='block';
+    setTimeout(()=>switchTab('login',document.querySelector('.ltab')),2000);
+  }catch(e){err.textContent='Erreur : '+e.message;err.style.display='block';}
+  btn.disabled=false;btn.textContent='Activer mon QR code ⚡';
+}
+
+function logout(){clearSession();CU=null;QRS=[];USERS=[];MSGS=[];showScreen('login');}
+
+// ── LOAD ──
+async function loadAll(){
+  const [q,u,m]=await Promise.all([
+    db('qr_codes?order=created_at.desc'),
+    db('users?order=created_at.desc'),
+    db('messages?order=created_at.asc')
+  ]);
+  QRS=Array.isArray(q)?q:[];
+  USERS=Array.isArray(u)?u:[];
+  MSGS=Array.isArray(m)?m:[];
+}
+
+// ══ ADMIN ══
+function initAdmin(){
+  showScreen('admin');
+  renderAdminStats();
+  renderAdminOwnQR();
+  renderAdminQRList();
+  renderAdminClients();
+  renderAdminConvs();
+}
+
+function showAP(name,el){
+  document.querySelectorAll('#screen-admin .page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#admin-tabs .tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('admin-'+name).classList.add('active');
+  if(el)el.classList.add('active');
+}
+
+function renderAdminStats(){
+  const clientQRs=QRS.filter(q=>q.user_id&&q.user_id!==CU.id);
+  const active=clientQRs.filter(q=>q.status==='active').length;
+  const free=QRS.filter(q=>q.status==='free').length;
+  const scans=QRS.reduce((s,q)=>s+(q.scans||0),0);
+  const clients=USERS.filter(u=>!u.is_admin).length;
+  document.getElementById('as-active').textContent=active;
+  document.getElementById('as-free').textContent=free;
+  document.getElementById('as-scans').textContent=scans>=1000?(scans/1000).toFixed(1)+'k':scans;
+  document.getElementById('as-clients').textContent=clients;
+  const top=QRS.filter(q=>q.scans>0).sort((a,b)=>b.scans-a.scans).slice(0,7);
+  const maxS=Math.max(...top.map(q=>q.scans),1);
+  document.getElementById('a-chart').innerHTML=top.length?top.map(q=>`<div class="bar-wrap"><div class="bar" style="height:${Math.max(8,q.scans/maxS*100)}%"></div><div class="bar-label">${q.id}</div></div>`).join(''):'<div style="color:var(--muted);font-size:12px;padding:20px">Aucun scan</div>';
+  document.getElementById('a-top').innerHTML=top.slice(0,5).map((q,i)=>`<div class="top-item"><div class="top-rank">#${i+1}</div><div class="top-name">${esc(q.name||q.id)}</div><div class="top-bar"><div class="top-bar-fill" style="width:${q.scans/maxS*100}%"></div></div><div class="top-scans">${q.scans}</div></div>`).join('')||'<div style="color:var(--muted);font-size:12px">Aucun scan</div>';
+}
+
+function renderAdminOwnQR(){
+  const myQRs=QRS.filter(q=>q.user_id===CU.id);
+  const el=document.getElementById('admin-own-qr');
+  if(!myQRs.length){el.innerHTML='<div class="empty"><div class="empty-icon">⚡</div><p>Aucun QR personnel</p></div>';return;}
+  el.innerHTML='<div class="multi-list">'+myQRs.map(q=>`
+    <div class="multi-item">
+      <div class="mini-thumb" id="ownthumb-${q.id}"></div>
+      <div class="multi-info"><div class="multi-code">${esc(q.name||q.id)}</div><div class="multi-dest">→ ${esc(q.url||'—')}</div></div>
+      <button class="btn-edit-sm" onclick="openSheet('${q.id}')">✏️ Modifier</button>
+    </div>`).join('')+'</div>';
+  myQRs.forEach(q=>setTimeout(()=>renderThumb('ownthumb-'+q.id,shortUrl(q.id)),60));
+}
+
+function renderAdminQRList(){
+  const clientQRs=QRS.filter(q=>!q.user_id||q.user_id!==CU.id);
+  const active=clientQRs.filter(q=>q.status==='active').length;
+  const free=clientQRs.filter(q=>q.status==='free').length;
+  document.getElementById('qr-count').textContent=`${clientQRs.length} codes · ${active} actifs · ${free} libres`;
+  const list=document.getElementById('a-qr-list');
+  if(!clientQRs.length){list.innerHTML='<div class="empty"><div class="empty-icon">📷</div><p>Aucun QR client</p></div>';return;}
+  list.innerHTML='';
+  clientQRs.forEach(q=>{
+    const owner=USERS.find(u=>u.id===q.user_id);
+    const item=document.createElement('div');
+    item.className='qr-item';item.id='qi-'+q.id;
+    item.innerHTML=`<div class="qr-thumb" id="qt-${q.id}"></div>
+      <div class="qr-info">
+        <div class="qr-name">${esc(q.name||q.id)}</div>
+        <span class="status ${q.status}">${q.status==='active'?'Actif':q.status==='free'?'Libre':'En attente'}</span>
+        <div class="qr-sub">${owner?esc(owner.pseudo||owner.email):'Non attribué'}</div>
+        <div class="qr-dest">${esc(q.url||'—')}</div>
+      </div>
+      <div class="qr-scans-mini"><div class="qr-scans-num">${q.scans||0}</div><div class="qr-scans-lbl">scans</div></div>
+      <div class="qr-btns">
+        <button class="btn-sm" onclick="openSheet('${q.id}')">✏️</button>
+        <button class="btn-sm" onclick="deleteQR('${q.id}')">🗑</button>
+      </div>`;
+    list.appendChild(item);
+    setTimeout(()=>renderThumb('qt-'+q.id,shortUrl(q.id)),60);
+  });
+}
+
+function toggleCreate(){document.getElementById('create-panel').classList.toggle('open');}
+
+async function createQR(){
+  const url=document.getElementById('new-url').value.trim()||BASE;
+  const id=genId();
+  const name='QR CODE N•'+id;
+  const btn=document.getElementById('btn-create');
+  btn.disabled=true;btn.textContent='Création…';
+  try{
+    const body={id,name,url,scans:0,status:'free'};
+    const r=await fetch(SUPA+'/rest/v1/qr_codes',{method:'POST',headers:H,body:JSON.stringify(body)});
+    const data=await r.json();
+    if(!r.ok)throw new Error(JSON.stringify(data));
+    QRS.unshift(Array.isArray(data)?data[0]:body);
+    renderAdminQRList();renderAdminStats();
+    document.getElementById('new-url').value='';
+    document.getElementById('create-panel').classList.remove('open');
+    toast('✅ QR créé : '+id);
+  }catch(e){toast('❌ Erreur : '+e.message);}
+  btn.disabled=false;btn.textContent='Créer ⚡';
+}
+
+async function generateBulk(){
+  if(!confirm('Générer 10 nouveaux codes QR ?'))return;
+  const batch=Array.from({length:10},()=>{const id=genId();return{id,name:'QR CODE N•'+id,url:BASE,scans:0,status:'free'};});
+  try{
+    const r=await fetch(SUPA+'/rest/v1/qr_codes',{method:'POST',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(batch)});
+    if(!r.ok)throw new Error('Erreur');
+    await loadAll();renderAdminQRList();renderAdminStats();
+    toast('✅ 10 codes générés !');
+  }catch(e){toast('❌ Erreur : '+e.message);}
+}
+
+async function deleteQR(id){
+  if(!confirm('Supprimer ce QR ?'))return;
+  await db('qr_codes?id=eq.'+id,'DELETE');
+  QRS=QRS.filter(q=>q.id!==id);
+  renderAdminQRList();renderAdminStats();
+  toast('🗑 Supprimé');
+}
+
+function renderAdminClients(){
+  const clients=USERS.filter(u=>!u.is_admin);
+  document.getElementById('a-clients-count').textContent=clients.length+' clients inscrits';
+  const list=document.getElementById('a-client-list');
+  if(!clients.length){list.innerHTML='<div class="empty"><div class="empty-icon">👥</div><p>Aucun client</p></div>';return;}
+  list.innerHTML='';
+  clients.forEach(u=>{
+    const codes=QRS.filter(q=>q.user_id===u.id);
+    const card=document.createElement('div');card.className='client-card';
+    card.innerHTML=`<div class="client-top"><div class="client-name">${esc(u.pseudo||u.email)}</div><div class="client-date">${new Date(u.created_at).toLocaleDateString('fr-FR')}</div></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${esc(u.email)}</div>
+      <div class="code-tags">${codes.map(c=>`<span class="code-tag">${c.id}</span>`).join('')||'<span style="color:var(--muted);font-size:12px">Aucun code</span>'}</div>
+      <div style="font-size:11px;color:var(--green)">✅ ${codes.length} QR code${codes.length>1?'s':''}</div>`;
+    list.appendChild(card);
+  });
+}
+
+function renderAdminConvs(){
+  const list=document.getElementById('a-conv-list');
+  const uids=[...new Set(MSGS.map(m=>m.user_id).filter(Boolean))];
+  if(!uids.length){list.innerHTML='<div class="empty"><div class="empty-icon">💬</div><p>Aucun message</p></div>';return;}
+  list.innerHTML='';
+  uids.forEach(uid=>{
+    const u=USERS.find(x=>x.id===uid);
+    const umsgs=MSGS.filter(m=>m.user_id===uid);
+    const last=umsgs[umsgs.length-1];
+    const item=document.createElement('div');
+    item.className='conv-item'+(activeConv===uid?' active':'');
+    item.innerHTML=`<div class="conv-av">${(u?.pseudo||u?.email||'?')[0].toUpperCase()}</div>
+      <div class="conv-info"><div class="conv-name">${esc(u?.pseudo||u?.email||uid)}</div><div class="conv-preview">${esc(last?.content||'—')}</div></div>`;
+    item.onclick=()=>openConv(uid);
+    list.appendChild(item);
+  });
+}
+
+function openConv(uid){
+  activeConv=uid;
+  const u=USERS.find(x=>x.id===uid);
+  const umsgs=MSGS.filter(m=>m.user_id===uid);
+  document.getElementById('a-chat-av').textContent=(u?.pseudo||u?.email||'?')[0].toUpperCase();
+  document.getElementById('a-chat-name').textContent=u?.pseudo||u?.email||uid;
+  document.getElementById('a-chat-sub').textContent=umsgs.length+' message(s)';
+  const el=document.getElementById('a-chat-msgs');
+  el.innerHTML=umsgs.map(m=>`<div class="msg ${m.from_admin?'me':'them'}"><div class="msg-bubble">${esc(m.content)}</div><div class="msg-time">${new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div></div>`).join('');
+  el.scrollTop=el.scrollHeight;
+  document.getElementById('a-chat').style.display='block';
+  renderAdminConvs();
+}
+
+async function adminSend(){
+  if(!activeConv)return;
+  const input=document.getElementById('a-chat-input');
+  const content=input.value.trim();if(!content)return;
+  input.value='';
+  try{
+    const r=await fetch(SUPA+'/rest/v1/messages',{method:'POST',headers:H,body:JSON.stringify({user_id:activeConv,content,from_admin:true})});
+    const data=await r.json();
+    MSGS.push(Array.isArray(data)?data[0]:{user_id:activeConv,content,from_admin:true,created_at:new Date().toISOString()});
+    openConv(activeConv);
+  }catch(e){toast('❌ Erreur');}
+}
+
+function toggleBroadcast(){document.getElementById('broadcast-panel').classList.toggle('open');}
+
+async function sendBroadcast(){
+  const content=document.getElementById('broadcast-msg').value.trim();
+  if(!content){toast('⚠️ Écris un message');return;}
+  const clients=USERS.filter(u=>!u.is_admin);
+  if(!clients.length){toast('⚠️ Aucun client');return;}
+  try{
+    const batch=clients.map(u=>({user_id:u.id,content,from_admin:true}));
+    await fetch(SUPA+'/rest/v1/messages',{method:'POST',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(batch)});
+    await loadAll();renderAdminConvs();
+    document.getElementById('broadcast-msg').value='';
+    document.getElementById('broadcast-panel').classList.remove('open');
+    toast('📢 Envoyé à '+clients.length+' clients !');
+  }catch(e){toast('❌ Erreur');}
+}
+
+// ── SETTINGS ──
+async function updateEmail(role){
+  const pre=role==='admin'?'set':'cs';
+  const current=document.getElementById(pre+'-email-current').value.trim();
+  const newEmail=document.getElementById(pre+'-email-new').value.trim();
+  const confirm=document.getElementById(pre+'-email-confirm').value.trim();
+  if(!current||!newEmail||!confirm){toast('⚠️ Remplis tous les champs');return;}
+  if(current!==CU.email){toast('❌ Email actuel incorrect');return;}
+  if(newEmail!==confirm){toast('❌ Les emails ne correspondent pas');return;}
+  await db('users?id=eq.'+CU.id,'PATCH',{email:newEmail});
+  CU.email=newEmail;saveSession(CU);
+  toast('✅ Email mis à jour !');
+}
+
+async function updatePassword(role){
+  const pre=role==='admin'?'set':'cs';
+  const email=document.getElementById(pre+'-pwd-email').value.trim();
+  const current=document.getElementById(pre+'-pwd-current').value;
+  const newPwd=document.getElementById(pre+'-pwd-new').value;
+  const confirm=document.getElementById(pre+'-pwd-confirm').value;
+  if(!email||!current||!newPwd||!confirm){toast('⚠️ Remplis tous les champs');return;}
+  if(email!==CU.email){toast('❌ Email incorrect');return;}
+  if(current!==CU.password_hash){toast('❌ Mot de passe actuel incorrect');return;}
+  if(newPwd!==confirm){toast('❌ Les mots de passe ne correspondent pas');return;}
+  if(newPwd.length<6){toast('❌ Mot de passe trop court');return;}
+  await db('users?id=eq.'+CU.id,'PATCH',{password_hash:newPwd});
+  CU.password_hash=newPwd;saveSession(CU);
+  toast('✅ Mot de passe mis à jour !');
+}
+
+async function updatePseudo(role){
+  const id=role==='admin'?'set-pseudo':'cs-pseudo';
+  const val=document.getElementById(id).value.trim();
+  if(!val){toast('⚠️ Pseudo vide');return;}
+  await db('users?id=eq.'+CU.id,'PATCH',{pseudo:val});
+  CU.pseudo=val;saveSession(CU);
+  toast('✅ Pseudo mis à jour !');
+}
+
+// ══ CLIENT ══
+function initClient(){
+  showScreen('client');
+  document.getElementById('c-badge').textContent=(CU.pseudo||'CLIENT').toUpperCase();
+  renderClientQR();
+  renderClientStats();
+  renderClientMsgs();
+}
+
+function showCP(name,el){
+  document.querySelectorAll('#screen-client .page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#client-tabs .tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('client-'+name).classList.add('active');
+  if(el)el.classList.add('active');
+}
+
+function renderClientQR(){
+  const myQRs=QRS.filter(q=>q.user_id===CU.id);
+  const list=document.getElementById('c-qr-list');
+  if(!myQRs.length){list.innerHTML='<div class="empty"><div class="empty-icon">🔗</div><p>Aucun QR code associé</p></div>';return;}
+  list.innerHTML='';
+  myQRs.forEach(q=>{
+    const item=document.createElement('div');item.className='multi-item';
+    item.innerHTML=`<div class="mini-thumb" id="ct-${q.id}"></div>
+      <div class="multi-info"><div class="multi-code">${esc(q.name||q.id)}</div><div class="multi-dest">→ ${esc(q.url||'—')}</div></div>
+      <button class="btn-edit-sm" onclick="openSheet('${q.id}')">✏️ Modifier</button>`;
+    list.appendChild(item);
+    setTimeout(()=>renderThumb('ct-'+q.id,shortUrl(q.id)),60);
+  });
+}
+
+function renderClientStats(){
+  const myQRs=QRS.filter(q=>q.user_id===CU.id);
+  const scans=myQRs.reduce((s,q)=>s+(q.scans||0),0);
+  document.getElementById('cs-scans').textContent=scans;
+  document.getElementById('cs-count').textContent=myQRs.length;
+  const maxS=Math.max(...myQRs.map(q=>q.scans),1);
+  document.getElementById('c-chart').innerHTML=myQRs.length?myQRs.map(q=>`<div class="bar-wrap"><div class="bar" style="height:${Math.max(8,q.scans/maxS*100)}%"></div><div class="bar-label">${q.id}</div></div>`).join(''):'<div style="color:var(--muted);font-size:12px;padding:20px">Aucun scan</div>';
+}
+
+function renderClientMsgs(){
+  const myMsgs=MSGS.filter(m=>m.user_id===CU.id);
+  const el=document.getElementById('c-chat-msgs');
+  el.innerHTML=myMsgs.length?myMsgs.map(m=>`<div class="msg ${m.from_admin?'them':'me'}"><div class="msg-bubble">${esc(m.content)}</div><div class="msg-time">${new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div></div>`).join(''):'<div style="color:var(--muted);font-size:13px;padding:20px;text-align:center">Envoie un message à ADX Support 👋</div>';
+  el.scrollTop=el.scrollHeight;
+}
+
+async function clientSend(){
+  const input=document.getElementById('c-chat-input');
+  const content=input.value.trim();if(!content)return;
+  input.value='';
+  try{
+    const r=await fetch(SUPA+'/rest/v1/messages',{method:'POST',headers:H,body:JSON.stringify({user_id:CU.id,content,from_admin:false})});
+    const data=await r.json();
+    MSGS.push(Array.isArray(data)?data[0]:{user_id:CU.id,content,from_admin:false,created_at:new Date().toISOString()});
+    renderClientMsgs();
+  }catch(e){toast('❌ Erreur');}
+}
+
+// ── MODAL ──
+function renderThumb(id,url){const el=document.getElementById(id);if(!el)return;el.innerHTML='';new QRCode(el,{text:url,width:44,height:44,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});}
+
+function openSheet(id){
+  const q=QRS.find(x=>x.id===id);if(!q)return;
+  activeQR=id;
+  document.getElementById('sh-title').textContent=q.name||q.id;
+  document.getElementById('sh-code').textContent=shortUrl(id);
+  document.getElementById('sh-dest').textContent='→ '+(q.url||'—');
+  document.getElementById('sh-url').value=q.url||'';
+  const el=document.getElementById('sh-qr');el.innerHTML='';
+  new QRCode(el,{text:shortUrl(id),width:200,height:200,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H});
+  const btn=document.getElementById('btn-update');btn.textContent='Maj';btn.classList.remove('ok');
+  document.getElementById('overlay').classList.add('open');
+}
+
+async function saveUrl(){
+  const q=QRS.find(x=>x.id===activeQR);if(!q)return;
+  const newUrl=document.getElementById('sh-url').value.trim();
+  if(!newUrl||!newUrl.startsWith('http')){toast('⚠️ URL invalide');return;}
+  const btn=document.getElementById('btn-update');btn.disabled=true;btn.textContent='…';
+  try{
+    await db('qr_codes?id=eq.'+activeQR,'PATCH',{url:newUrl});
+    q.url=newUrl;
+    document.getElementById('sh-dest').textContent='→ '+newUrl;
+    btn.textContent='✓';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='Maj';btn.classList.remove('ok');btn.disabled=false;},2000);
+    toast('🔄 URL mise à jour !');
+    if(CU.is_admin){renderAdminOwnQR();renderAdminQRList();}else{renderClientQR();}
+  }catch(e){toast('❌ Erreur');btn.disabled=false;btn.textContent='Maj';}
+}
+
+function copyLink(){navigator.clipboard.writeText(shortUrl(activeQR));toast('📋 Lien copié !');}
+
+// ── AUTO LOGIN ──
+window.addEventListener('DOMContentLoaded',async()=>{
+  const saved=loadSession();
+  if(saved){CU=saved;await loadAll();if(CU.is_admin)initAdmin();else initClient();}
+});
+</script>
+</body>
+</html>
